@@ -2,22 +2,35 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>Merry Christmas</title>
+    <title>Warm Christmas Tree</title>
     <style>
         body {
             margin: 0;
             overflow: hidden;
-            background-color: #0f2027; /* 深色唯美背景 */
+            /* 背景改為深夜藍色漸層，比較護眼且溫馨 */
+            background: radial-gradient(circle at center, #1b2735 0%, #090a0f 100%);
             font-family: 'Arial', sans-serif;
         }
         canvas {
             display: block;
+        }
+        #message {
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            pointer-events: none;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
         }
     </style>
 </head>
 <body>
 
 <canvas id="canvas"></canvas>
+<div id="message">MERRY CHRISTMAS</div>
 
 <script>
     const canvas = document.getElementById('canvas');
@@ -26,159 +39,173 @@
     let width, height;
     let particles = [];
     
-    // 初始化畫布
+    // 設定樹的比例 (可以這裡調整)
+    const TREE_HEIGHT_RATIO = 0.7; // 樹佔畫面的高度比例
+    const TREE_WIDTH_RATIO = 0.4;  // 樹底部的寬度比例
+
     function resize() {
         width = canvas.width = window.innerWidth;
         height = canvas.height = window.innerHeight;
+        initTree(); // 改變視窗大小時重繪
     }
     window.addEventListener('resize', resize);
-    resize();
 
-    // 粒子類別
     class Particle {
         constructor(x, y, type) {
-            this.type = type; 
+            this.type = type; // 'leaf', 'decoration', 'star'
             
-            // 目標位置 (樹的形狀)
+            // 目標位置 (樹的最終形狀)
             this.targetX = x;
             this.targetY = y;
             
-            // 初始位置 (隨機散落在畫面外或邊緣，製造飛入效果)
+            // 初始位置 (從畫面四周隨機飛入，製造組裝效果)
             this.x = Math.random() * width;
             this.y = Math.random() * height;
             
-            // 物理參數
+            // 移動物理參數 (數值越小越慢)
             this.vx = 0;
             this.vy = 0;
-            this.friction = 0.92; // 摩擦力
-            this.ease = 0.05;     // 平滑度
+            this.friction = 0.90; // 摩擦力，越高越滑
+            this.ease = 0.03;     // 平滑度，越低越慢
             
-            // 樣式
-            if (type === 'tree') {
-                const rand = Math.random();
-                if (rand > 0.9) this.hue = 0;        // 10% 紅色裝飾球
-                else if (rand > 0.8) this.hue = 50;  // 10% 金色裝飾球
-                else this.hue = 120 + Math.random() * 40; // 80% 綠色樹葉
-                
+            // 視覺參數
+            this.baseAlpha = 0.3 + Math.random() * 0.5; // 基礎透明度
+            this.alpha = 0;
+            this.blinkOffset = Math.random() * Math.PI * 2;
+            this.blinkSpeed = 0.02 + Math.random() * 0.02; // 閃爍速度減慢
+            
+            if (type === 'leaf') {
+                // 樹葉：深綠到淺綠
+                const green = 100 + Math.random() * 100;
+                this.color = `rgba(50, ${green}, 50,`; 
+                this.size = Math.random() * 2 + 1.5;
+            } else if (type === 'decoration') {
+                // 裝飾球：暖金、紅
+                if (Math.random() > 0.5) {
+                    this.color = `rgba(255, 50, 50,`; // 紅
+                } else {
+                    this.color = `rgba(255, 215, 0,`; // 金
+                }
                 this.size = Math.random() * 3 + 2;
-                this.alpha = Math.random();
-                this.blinkSpeed = 0.01 + Math.random() * 0.03;
+                this.baseAlpha = 0.8; // 裝飾球亮一點
             } else if (type === 'star') {
-                this.hue = 60; // 黃色星星
-                this.size = Math.random() * 6 + 4;
-                this.alpha = 1;
-                this.blinkSpeed = 0.05;
+                // 樹頂星星
+                this.color = `rgba(255, 255, 200,`;
+                this.size = Math.random() * 5 + 2;
+                this.baseAlpha = 1;
             }
         }
 
         update() {
-            // 1. 飛向目標位置的物理計算
+            // 1. 物理運動：飛向目標
             const dx = this.targetX - this.x;
             const dy = this.targetY - this.y;
             
             this.vx += dx * this.ease;
             this.vy += dy * this.ease;
+            
+            // 加入一點點隨機擾動 (讓樹看起來活潑一點點，但不要太亂)
+            this.vx += (Math.random() - 0.5) * 0.1;
+            this.vy += (Math.random() - 0.5) * 0.1;
+
             this.vx *= this.friction;
             this.vy *= this.friction;
             
             this.x += this.vx;
             this.y += this.vy;
 
-            // 2. 閃爍效果
-            this.alpha += this.blinkSpeed;
-            if (this.alpha > 1 || this.alpha < 0.3) {
-                this.blinkSpeed *= -1;
-            }
+            // 2. 呼吸燈閃爍效果 (使用 Sin 波讓亮度變化更平滑)
+            this.blinkOffset += this.blinkSpeed;
+            // 透明度在 baseAlpha 的 50% ~ 100% 之間波動
+            this.alpha = this.baseAlpha * (0.7 + 0.3 * Math.sin(this.blinkOffset));
         }
 
         draw() {
             ctx.beginPath();
-            ctx.fillStyle = `hsla(${this.hue}, 100%, 60%, ${Math.abs(this.alpha)})`;
+            ctx.fillStyle = this.color + this.alpha + ')';
             ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
             ctx.fill();
         }
     }
 
-    // 建立聖誕樹函數
-    function createChristmasTree() {
+    function initTree() {
         particles = [];
+        const treeH = height * TREE_HEIGHT_RATIO;
+        const treeW = height * TREE_WIDTH_RATIO; // 讓寬度隨高度變化，保持比例
         
-        // 樹的參數
-        const treeWidth = Math.min(width * 0.8, 500);
-        const treeHeight = 600;
         const startX = width / 2;
-        const startY = height / 2 - 250;
+        const startY = height / 2 - treeH / 2 + 50; // 稍微向上偏移
 
-        // 1. 生成樹葉 (三角形分佈)
-        for (let i = 0; i < 1200; i++) {
-            let r1 = Math.random();
-            let r2 = Math.random();
-            // 確保點在三角形內
-            if (r1 + r2 > 1) {
-                r1 = 1 - r1;
-                r2 = 1 - r2;
+        // 1. 生成樹葉 (圓錐體算法)
+        // 使用層級生成，確保樹形更像聖誕樹
+        const layers = 15; // 樹的層數
+        for (let l = 0; l < layers; l++) {
+            const layerProgress = l / layers;
+            const layerY = startY + layerProgress * treeH;
+            const layerWidth = (layerProgress * treeW) / 2; // 該層的半徑
+            
+            // 每一層生成的粒子數量
+            const count = 30 + l * 40; 
+            
+            for (let i = 0; i < count; i++) {
+                // 在該層的寬度範圍內隨機分佈
+                // 使用 pow 函數讓粒子稍微集中在中心，讓樹看起來更實
+                const xOffset = (Math.random() - 0.5) * 2 * layerWidth;
+                
+                // 加入一點 Y 軸隨機，讓層與層之間融合
+                const yOffset = (Math.random() - 0.5) * (treeH / layers);
+                
+                particles.push(new Particle(startX + xOffset, layerY + yOffset, 'leaf'));
             }
-            
-            const h = Math.random() * treeHeight; // 高度
-            const w = (h / treeHeight) * (treeWidth / 2); // 該高度的寬度
-            
-            const pX = startX + (Math.random() - 0.5) * 2 * w;
-            const pY = startY + h;
-            
-            particles.push(new Particle(pX, pY, 'tree'));
         }
 
-        // 2. 生成樹幹 (矩形)
-        for (let i = 0; i < 200; i++) {
-            const tx = startX + (Math.random() - 0.5) * 60;
-            const ty = startY + treeHeight + Math.random() * 80;
-            const p = new Particle(tx, ty, 'tree');
-            p.hue = 30; // 棕色
-            particles.push(p);
+        // 2. 裝飾球 (隨機掛在樹上)
+        for (let i = 0; i < 150; i++) {
+            const h = Math.random() * treeH;
+            const w = (h / treeH) * (treeW / 2);
+            // 只掛在樹的外層比較好看
+            const xOff = (Math.random() - 0.5) * 2 * w * 0.9; 
+            particles.push(new Particle(startX + xOff, startY + h, 'decoration'));
         }
-        
+
         // 3. 樹頂星星
-        for(let i=0; i<40; i++) {
-            const p = new Particle(startX + (Math.random()-0.5)*25, startY - 20 + (Math.random()-0.5)*25, 'star');
-            particles.push(p);
+        for (let i = 0; i < 30; i++) {
+            // 星星集中在頂端
+            const sx = startX + (Math.random() - 0.5) * 20;
+            const sy = startY - 10 + (Math.random() - 0.5) * 20;
+            particles.push(new Particle(sx, sy, 'star'));
         }
     }
 
-    // 動畫循環
     function animate() {
-        // 殘影背景
-        ctx.fillStyle = 'rgba(15, 32, 39, 0.2)'; 
-        ctx.fillRect(0, 0, width, height);
+        // 清除畫布 (完全清除，不要殘影，看起來比較乾淨不眼花)
+        ctx.clearRect(0, 0, width, height);
+
+        // 如果想要一點點光暈效果，可以打開下面這行，但可能會變亮
+        // ctx.globalCompositeOperation = 'lighter'; 
 
         for (let p of particles) {
             p.update();
             p.draw();
         }
         
-        // 繪製文字
-        ctx.save();
-        ctx.shadowColor = "#FFF";
-        ctx.shadowBlur = 20;
-        ctx.fillStyle = "white";
-        ctx.font = "bold 60px sans-serif";
-        ctx.textAlign = "center";
-        ctx.fillText("Merry Christmas", width / 2, height - 50);
-        ctx.restore();
-
+        ctx.globalCompositeOperation = 'source-over';
         requestAnimationFrame(animate);
     }
-
-    // 滑鼠互動：擾動粒子 (像魔法蒸氣一樣)
+    
+    // 滑鼠互動：輕輕撥動樹葉
     window.addEventListener('mousemove', (e) => {
+        const mouseX = e.clientX;
+        const mouseY = e.clientY;
+        
         for (let p of particles) {
-            const dx = e.clientX - p.x;
-            const dy = e.clientY - p.y;
+            const dx = mouseX - p.x;
+            const dy = mouseY - p.y;
             const dist = Math.sqrt(dx*dx + dy*dy);
             
-            // 如果滑鼠靠近粒子，推開它們
-            if (dist < 100) {
+            if (dist < 80) { // 只有靠很近才會有反應
                 const angle = Math.atan2(dy, dx);
-                const force = (100 - dist) / 10;
+                const force = (80 - dist) * 0.05; // 力道很輕
                 p.vx -= Math.cos(angle) * force;
                 p.vy -= Math.sin(angle) * force;
             }
@@ -186,7 +213,7 @@
     });
 
     // 啟動
-    createChristmasTree();
+    resize();
     animate();
 
 </script>
