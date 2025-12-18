@@ -7,7 +7,7 @@
         body {
             margin: 0;
             overflow: hidden;
-            /* 背景改為深夜藍色漸層，比較護眼且溫馨 */
+            /* 深夜藍色漸層背景 */
             background: radial-gradient(circle at center, #1b2735 0%, #090a0f 100%);
             font-family: 'Arial', sans-serif;
         }
@@ -16,14 +16,16 @@
         }
         #message {
             position: absolute;
-            bottom: 30px;
+            bottom: 40px; /* 稍微往上提一點 */
             width: 100%;
             text-align: center;
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 14px;
+            color: rgba(255, 255, 255, 0.9); /* 字體調亮一點點 */
+            font-size: 40px; /* <--- 字體改大 */
+            font-weight: bold; /* <--- 加粗 */
             pointer-events: none;
-            letter-spacing: 2px;
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            letter-spacing: 8px; /* <--- 字距拉寬，更有質感 */
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.6); /* 金色光暈 */
+            font-family: 'Times New Roman', serif; /* 改用襯線體更有節日感 */
         }
     </style>
 </head>
@@ -39,57 +41,48 @@
     let width, height;
     let particles = [];
     
-    // 設定樹的比例 (可以這裡調整)
-    const TREE_HEIGHT_RATIO = 0.7; // 樹佔畫面的高度比例
-    const TREE_WIDTH_RATIO = 0.4;  // 樹底部的寬度比例
+    // 樹的比例設定
+    const TREE_HEIGHT_RATIO = 0.7; 
+    const TREE_WIDTH_RATIO = 0.4;
 
     function resize() {
         width = canvas.width = window.innerWidth;
         height = canvas.height = window.innerHeight;
-        initTree(); // 改變視窗大小時重繪
+        initTree(); 
     }
     window.addEventListener('resize', resize);
 
     class Particle {
         constructor(x, y, type) {
-            this.type = type; // 'leaf', 'decoration', 'star'
-            
-            // 目標位置 (樹的最終形狀)
+            this.type = type; 
             this.targetX = x;
             this.targetY = y;
-            
-            // 初始位置 (從畫面四周隨機飛入，製造組裝效果)
             this.x = Math.random() * width;
             this.y = Math.random() * height;
             
-            // 移動物理參數 (數值越小越慢)
             this.vx = 0;
             this.vy = 0;
-            this.friction = 0.90; // 摩擦力，越高越滑
-            this.ease = 0.03;     // 平滑度，越低越慢
+            this.friction = 0.90; 
+            this.ease = 0.03;     
             
-            // 視覺參數
-            this.baseAlpha = 0.3 + Math.random() * 0.5; // 基礎透明度
+            this.baseAlpha = 0.3 + Math.random() * 0.5;
             this.alpha = 0;
             this.blinkOffset = Math.random() * Math.PI * 2;
-            this.blinkSpeed = 0.02 + Math.random() * 0.02; // 閃爍速度減慢
+            this.blinkSpeed = 0.02 + Math.random() * 0.02; 
             
             if (type === 'leaf') {
-                // 樹葉：深綠到淺綠
                 const green = 100 + Math.random() * 100;
                 this.color = `rgba(50, ${green}, 50,`; 
                 this.size = Math.random() * 2 + 1.5;
             } else if (type === 'decoration') {
-                // 裝飾球：暖金、紅
                 if (Math.random() > 0.5) {
-                    this.color = `rgba(255, 50, 50,`; // 紅
+                    this.color = `rgba(255, 50, 50,`; 
                 } else {
-                    this.color = `rgba(255, 215, 0,`; // 金
+                    this.color = `rgba(255, 215, 0,`; 
                 }
                 this.size = Math.random() * 3 + 2;
-                this.baseAlpha = 0.8; // 裝飾球亮一點
+                this.baseAlpha = 0.8; 
             } else if (type === 'star') {
-                // 樹頂星星
                 this.color = `rgba(255, 255, 200,`;
                 this.size = Math.random() * 5 + 2;
                 this.baseAlpha = 1;
@@ -97,14 +90,12 @@
         }
 
         update() {
-            // 1. 物理運動：飛向目標
             const dx = this.targetX - this.x;
             const dy = this.targetY - this.y;
             
             this.vx += dx * this.ease;
             this.vy += dy * this.ease;
             
-            // 加入一點點隨機擾動 (讓樹看起來活潑一點點，但不要太亂)
             this.vx += (Math.random() - 0.5) * 0.1;
             this.vy += (Math.random() - 0.5) * 0.1;
 
@@ -114,9 +105,7 @@
             this.x += this.vx;
             this.y += this.vy;
 
-            // 2. 呼吸燈閃爍效果 (使用 Sin 波讓亮度變化更平滑)
             this.blinkOffset += this.blinkSpeed;
-            // 透明度在 baseAlpha 的 50% ~ 100% 之間波動
             this.alpha = this.baseAlpha * (0.7 + 0.3 * Math.sin(this.blinkOffset));
         }
 
@@ -131,46 +120,37 @@
     function initTree() {
         particles = [];
         const treeH = height * TREE_HEIGHT_RATIO;
-        const treeW = height * TREE_WIDTH_RATIO; // 讓寬度隨高度變化，保持比例
+        const treeW = height * TREE_WIDTH_RATIO; 
         
         const startX = width / 2;
-        const startY = height / 2 - treeH / 2 + 50; // 稍微向上偏移
+        const startY = height / 2 - treeH / 2 + 30; 
 
-        // 1. 生成樹葉 (圓錐體算法)
-        // 使用層級生成，確保樹形更像聖誕樹
-        const layers = 15; // 樹的層數
+        // 1. 樹葉
+        const layers = 15; 
         for (let l = 0; l < layers; l++) {
             const layerProgress = l / layers;
             const layerY = startY + layerProgress * treeH;
-            const layerWidth = (layerProgress * treeW) / 2; // 該層的半徑
+            const layerWidth = (layerProgress * treeW) / 2; 
             
-            // 每一層生成的粒子數量
             const count = 30 + l * 40; 
             
             for (let i = 0; i < count; i++) {
-                // 在該層的寬度範圍內隨機分佈
-                // 使用 pow 函數讓粒子稍微集中在中心，讓樹看起來更實
                 const xOffset = (Math.random() - 0.5) * 2 * layerWidth;
-                
-                // 加入一點 Y 軸隨機，讓層與層之間融合
                 const yOffset = (Math.random() - 0.5) * (treeH / layers);
-                
                 particles.push(new Particle(startX + xOffset, layerY + yOffset, 'leaf'));
             }
         }
 
-        // 2. 裝飾球 (隨機掛在樹上)
+        // 2. 裝飾球
         for (let i = 0; i < 150; i++) {
             const h = Math.random() * treeH;
             const w = (h / treeH) * (treeW / 2);
-            // 只掛在樹的外層比較好看
             const xOff = (Math.random() - 0.5) * 2 * w * 0.9; 
             particles.push(new Particle(startX + xOff, startY + h, 'decoration'));
         }
 
-        // 3. 樹頂星星
+        // 3. 星星
         for (let i = 0; i < 30; i++) {
-            // 星星集中在頂端
             const sx = startX + (Math.random() - 0.5) * 20;
             const sy = startY - 10 + (Math.random() - 0.5) * 20;
             particles.push(new Particle(sx, sy, 'star'));
@@ -178,22 +158,17 @@
     }
 
     function animate() {
-        // 清除畫布 (完全清除，不要殘影，看起來比較乾淨不眼花)
         ctx.clearRect(0, 0, width, height);
-
-        // 如果想要一點點光暈效果，可以打開下面這行，但可能會變亮
-        // ctx.globalCompositeOperation = 'lighter'; 
 
         for (let p of particles) {
             p.update();
             p.draw();
         }
         
-        ctx.globalCompositeOperation = 'source-over';
         requestAnimationFrame(animate);
     }
     
-    // 滑鼠互動：輕輕撥動樹葉
+    // 滑鼠微互動
     window.addEventListener('mousemove', (e) => {
         const mouseX = e.clientX;
         const mouseY = e.clientY;
@@ -203,16 +178,15 @@
             const dy = mouseY - p.y;
             const dist = Math.sqrt(dx*dx + dy*dy);
             
-            if (dist < 80) { // 只有靠很近才會有反應
+            if (dist < 80) { 
                 const angle = Math.atan2(dy, dx);
-                const force = (80 - dist) * 0.05; // 力道很輕
+                const force = (80 - dist) * 0.05; 
                 p.vx -= Math.cos(angle) * force;
                 p.vy -= Math.sin(angle) * force;
             }
         }
     });
 
-    // 啟動
     resize();
     animate();
 
