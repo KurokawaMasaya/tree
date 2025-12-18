@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>Merry Christmas</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #0f2027; /* 深色唯美背景 */
+            font-family: 'Arial', sans-serif;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    let width, height;
+    let particles = [];
+    
+    // 初始化畫布
+    function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // 粒子類別
+    class Particle {
+        constructor(x, y, type) {
+            this.type = type; 
+            
+            // 目標位置 (樹的形狀)
+            this.targetX = x;
+            this.targetY = y;
+            
+            // 初始位置 (隨機散落在畫面外或邊緣，製造飛入效果)
+            this.x = Math.random() * width;
+            this.y = Math.random() * height;
+            
+            // 物理參數
+            this.vx = 0;
+            this.vy = 0;
+            this.friction = 0.92; // 摩擦力
+            this.ease = 0.05;     // 平滑度
+            
+            // 樣式
+            if (type === 'tree') {
+                const rand = Math.random();
+                if (rand > 0.9) this.hue = 0;        // 10% 紅色裝飾球
+                else if (rand > 0.8) this.hue = 50;  // 10% 金色裝飾球
+                else this.hue = 120 + Math.random() * 40; // 80% 綠色樹葉
+                
+                this.size = Math.random() * 3 + 2;
+                this.alpha = Math.random();
+                this.blinkSpeed = 0.01 + Math.random() * 0.03;
+            } else if (type === 'star') {
+                this.hue = 60; // 黃色星星
+                this.size = Math.random() * 6 + 4;
+                this.alpha = 1;
+                this.blinkSpeed = 0.05;
+            }
+        }
+
+        update() {
+            // 1. 飛向目標位置的物理計算
+            const dx = this.targetX - this.x;
+            const dy = this.targetY - this.y;
+            
+            this.vx += dx * this.ease;
+            this.vy += dy * this.ease;
+            this.vx *= this.friction;
+            this.vy *= this.friction;
+            
+            this.x += this.vx;
+            this.y += this.vy;
+
+            // 2. 閃爍效果
+            this.alpha += this.blinkSpeed;
+            if (this.alpha > 1 || this.alpha < 0.3) {
+                this.blinkSpeed *= -1;
+            }
+        }
+
+        draw() {
+            ctx.beginPath();
+            ctx.fillStyle = `hsla(${this.hue}, 100%, 60%, ${Math.abs(this.alpha)})`;
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    // 建立聖誕樹函數
+    function createChristmasTree() {
+        particles = [];
+        
+        // 樹的參數
+        const treeWidth = Math.min(width * 0.8, 500);
+        const treeHeight = 600;
+        const startX = width / 2;
+        const startY = height / 2 - 250;
+
+        // 1. 生成樹葉 (三角形分佈)
+        for (let i = 0; i < 1200; i++) {
+            let r1 = Math.random();
+            let r2 = Math.random();
+            // 確保點在三角形內
+            if (r1 + r2 > 1) {
+                r1 = 1 - r1;
+                r2 = 1 - r2;
+            }
+            
+            const h = Math.random() * treeHeight; // 高度
+            const w = (h / treeHeight) * (treeWidth / 2); // 該高度的寬度
+            
+            const pX = startX + (Math.random() - 0.5) * 2 * w;
+            const pY = startY + h;
+            
+            particles.push(new Particle(pX, pY, 'tree'));
+        }
+
+        // 2. 生成樹幹 (矩形)
+        for (let i = 0; i < 200; i++) {
+            const tx = startX + (Math.random() - 0.5) * 60;
+            const ty = startY + treeHeight + Math.random() * 80;
+            const p = new Particle(tx, ty, 'tree');
+            p.hue = 30; // 棕色
+            particles.push(p);
+        }
+        
+        // 3. 樹頂星星
+        for(let i=0; i<40; i++) {
+            const p = new Particle(startX + (Math.random()-0.5)*25, startY - 20 + (Math.random()-0.5)*25, 'star');
+            particles.push(p);
+        }
+    }
+
+    // 動畫循環
+    function animate() {
+        // 殘影背景
+        ctx.fillStyle = 'rgba(15, 32, 39, 0.2)'; 
+        ctx.fillRect(0, 0, width, height);
+
+        for (let p of particles) {
+            p.update();
+            p.draw();
+        }
+        
+        // 繪製文字
+        ctx.save();
+        ctx.shadowColor = "#FFF";
+        ctx.shadowBlur = 20;
+        ctx.fillStyle = "white";
+        ctx.font = "bold 60px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Merry Christmas", width / 2, height - 50);
+        ctx.restore();
+
+        requestAnimationFrame(animate);
+    }
+
+    // 滑鼠互動：擾動粒子 (像魔法蒸氣一樣)
+    window.addEventListener('mousemove', (e) => {
+        for (let p of particles) {
+            const dx = e.clientX - p.x;
+            const dy = e.clientY - p.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            
+            // 如果滑鼠靠近粒子，推開它們
+            if (dist < 100) {
+                const angle = Math.atan2(dy, dx);
+                const force = (100 - dist) / 10;
+                p.vx -= Math.cos(angle) * force;
+                p.vy -= Math.sin(angle) * force;
+            }
+        }
+    });
+
+    // 啟動
+    createChristmasTree();
+    animate();
+
+</script>
+</body>
+</html>
