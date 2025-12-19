@@ -4,24 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="color-scheme" content="dark">
-    <title>Fluid Christmas Tree</title>
+    <title>Bright Christmas Tree</title>
     <style>
-        html { background-color: #090a0f; height: 100%; overflow: hidden; }
+        html { background-color: #050508; height: 100%; overflow: hidden; }
         body {
             margin: 0; padding: 0; width: 100vw; height: 100vh;
-            background: #090a0f radial-gradient(circle at center, #1b2735 0%, #090a0f 100%);
+            background: #050508 radial-gradient(circle at center, #1a2a3a 0%, #050508 100%);
             overflow: hidden; touch-action: none; position: fixed; top: 0; left: 0;
         }
-        canvas { 
-            display: block; 
-            /* 🔥 強制 GPU 加速渲染 */
-            transform: translateZ(0); 
-        }
+        canvas { display: block; }
         #message {
-            position: absolute; bottom: 40px; width: 100%; text-align: center;
-            color: rgba(255, 255, 255, 0.9); font-size: 32px; font-weight: bold;
+            position: absolute; bottom: 10%; width: 100%; text-align: center;
+            color: #fffde7; font-size: 36px; font-weight: bold;
             pointer-events: none; letter-spacing: 5px;
-            text-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+            text-shadow: 0 0 15px #ffd700, 0 0 30px #ff8c00;
             font-family: 'Times New Roman', serif; z-index: 10;
         }
     </style>
@@ -33,115 +29,121 @@
 
 <script>
     const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d', { alpha: false }); // 優化：關閉透明通道計算
+    const ctx = canvas.getContext('2d');
 
-    let width, height;
-    let particles = [];
-    
-    // 🔥 偵測是否為手機
+    let width, height, particles = [];
     const isMobile = window.innerWidth < 768;
 
     function resize() {
         width = canvas.width = window.innerWidth;
         height = canvas.height = window.innerHeight;
-        initTree(); 
+        initTree();
     }
     window.addEventListener('resize', resize);
 
     class Particle {
         constructor(x, y, type) {
-            this.targetX = x;
-            this.targetY = y;
-            this.x = Math.random() * width;
-            this.y = Math.random() * height;
-            this.vx = 0;
-            this.vy = 0;
-            this.ease = isMobile ? 0.05 : 0.03; // 手機上反應快一點但減少計算週期
-            this.friction = 0.85; 
-            
-            this.blinkOffset = Math.random() * Math.PI * 2;
-            
+            this.targetX = x; this.targetY = y;
+            this.x = Math.random() * width; this.y = Math.random() * height;
+            this.vx = 0; this.vy = 0;
+            this.ease = 0.04;
+            this.friction = 0.88;
+            this.type = type;
+
             if (type === 'leaf') {
-                this.color = `rgba(50, ${100 + Math.random() * 80}, 50,`;
-                this.size = isMobile ? 1.2 : 1.8;
-                this.alpha = 0.5;
+                this.color = `rgba(0, ${180 + Math.random() * 75}, 50,`;
+                this.size = isMobile ? 2 : 2.5;
+                this.alpha = 0.6;
+            } else if (type === 'star') {
+                this.color = `rgba(255, 255, 150,`;
+                this.size = isMobile ? 3 : 5;
+                this.alpha = 1;
             } else {
-                this.color = Math.random() > 0.5 ? `rgba(255, 50, 50,` : `rgba(255, 215, 0,`;
-                this.size = isMobile ? 2 : 3;
-                this.alpha = 0.8;
+                this.color = Math.random() > 0.5 ? `rgba(255, 50, 50,` : `rgba(255, 220, 0,`;
+                this.size = isMobile ? 3 : 4;
+                this.alpha = 0.9;
             }
         }
 
         update() {
-            // 優化物理計算，減少亂數頻率
             this.vx += (this.targetX - this.x) * this.ease;
             this.vy += (this.targetY - this.y) * this.ease;
-            this.vx *= this.friction;
-            this.vy *= this.friction;
-            this.x += this.vx;
-            this.y += this.vy;
+            this.vx *= this.friction; this.vy *= this.friction;
+            this.x += this.vx; this.y += this.vy;
         }
 
         draw() {
             ctx.beginPath();
             ctx.fillStyle = this.color + this.alpha + ')';
-            ctx.arc(this.x, this.y, this.size, 0, 6.28); // 使用 6.28 代替 Math.PI*2 減少計算
+            ctx.arc(this.x, this.y, this.size, 0, 6.28);
             ctx.fill();
+            // 為裝飾品和星星增加額外發光
+            if (this.type !== 'leaf') {
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color + '1)';
+            }
         }
     }
 
     function initTree() {
         particles = [];
-        const treeH = height * 0.7;
-        const treeW = height * 0.4; 
+        const treeH = height * 0.65;
+        const treeW = height * 0.45;
         const startX = width / 2;
-        const startY = height * 0.15; 
+        const startY = height * 0.15;
 
-        // 🔥 手機版大幅減少粒子數量
-        const leafDensity = isMobile ? 15 : 30; 
-        const layers = isMobile ? 10 : 15;
-
+        // 1. 樹葉 (增加飽和度)
+        const layers = isMobile ? 12 : 18;
         for (let l = 0; l < layers; l++) {
             const layerY = startY + (l / layers) * treeH;
             const layerW = (l / layers) * (treeW / 2);
-            const count = 20 + l * leafDensity; 
-            
+            const count = isMobile ? (20 + l * 15) : (30 + l * 25);
             for (let i = 0; i < count; i++) {
                 const xOff = (Math.random() - 0.5) * 2 * layerW;
-                particles.push(new Particle(startX + xOff, layerY + (Math.random()-0.5)*15, 'leaf'));
+                particles.push(new Particle(startX + xOff, layerY + (Math.random()-0.5)*10, 'leaf'));
             }
         }
 
-        // 裝飾品數量也減半
-        const decorCount = isMobile ? 60 : 150;
+        // 2. 裝飾球 (增加亮度)
+        const decorCount = isMobile ? 80 : 150;
         for (let i = 0; i < decorCount; i++) {
             const h = Math.random() * treeH;
             const w = (h / treeH) * (treeW / 2);
             particles.push(new Particle(startX + (Math.random()-0.5)*2*w, startY + h, 'decor'));
         }
+
+        // 3. 頂部星星 (強化)
+        for (let i = 0; i < 40; i++) {
+            particles.push(new Particle(startX + (Math.random()-0.5)*15, startY - 10 + (Math.random()-0.5)*15, 'star'));
+        }
     }
 
     function animate() {
-        // 優化：使用純色填滿代替 clearRect 可以幫助某些手機瀏覽器渲染
-        ctx.fillStyle = '#090a0f';
+        ctx.fillStyle = '#050508';
         ctx.fillRect(0, 0, width, height);
+        
+        // 🔥 關鍵：讓顏色重疊時更亮
+        ctx.globalCompositeOperation = 'lighter';
 
         for (let i = 0; i < particles.length; i++) {
+            ctx.shadowBlur = 0; // 重置陰影
             particles[i].update();
             particles[i].draw();
         }
+        
+        ctx.globalCompositeOperation = 'source-over';
         requestAnimationFrame(animate);
     }
     
     function handleInteraction(x, y) {
-        const radius = isMobile ? 50 : 80;
+        const radius = isMobile ? 60 : 100;
         for (let i = 0; i < particles.length; i++) {
             const p = particles[i];
             const dx = x - p.x;
             const dy = y - p.y;
-            const dist = dx*dx + dy*dy; // 優化：使用距離平方比較，避開 Math.sqrt
-            if (dist < radius * radius) {
-                const force = (radius - Math.sqrt(dist)) * 0.08;
+            const distSq = dx*dx + dy*dy;
+            if (distSq < radius * radius) {
+                const force = (radius - Math.sqrt(distSq)) * 0.12;
                 const angle = Math.atan2(dy, dx);
                 p.vx -= Math.cos(angle) * force;
                 p.vy -= Math.sin(angle) * force;
