@@ -1,53 +1,3 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <title>Warm Christmas Tree</title>
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            /* 深夜藍色漸層背景 */
-            background: radial-gradient(circle at center, #1b2735 0%, #090a0f 100%);
-            font-family: 'Arial', sans-serif;
-        }
-        canvas {
-            display: block;
-        }
-        /* 中間大大的祝福語 */
-        #message {
-            position: absolute;
-            bottom: 40px;
-            width: 100%;
-            text-align: center;
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 40px; 
-            font-weight: bold;
-            pointer-events: none;
-            letter-spacing: 8px;
-            text-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
-            font-family: 'Times New Roman', serif;
-        }
-        /* 作者署名 - 改到右上角避免被擋住 */
-        #credit {
-            position: absolute;
-            top: 15px;     /* <--- 改到上面 */
-            right: 20px;   /* <--- 靠右 */
-            color: rgba(255, 255, 255, 0.3); /* 稍微透明一點，很有質感 */
-            font-size: 12px;
-            font-family: sans-serif;
-            pointer-events: none;
-            font-style: italic;
-            letter-spacing: 1px;
-        }
-    </style>
-</head>
-<body>
-
-<canvas id="canvas"></canvas>
-<div id="message">MERRY CHRISTMAS</div>
-<div id="credit">made by Joe Qiao and Gemini</div>
-
 <script>
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
@@ -182,14 +132,13 @@
         requestAnimationFrame(animate);
     }
     
-    // 滑鼠微互動
-    window.addEventListener('mousemove', (e) => {
-        const mouseX = e.clientX;
-        const mouseY = e.clientY;
-        
+    // --- 核心修改：整合滑鼠與觸控 ---
+    
+    // 定義一個通用的互動處理函式
+    function handleInteraction(x, y) {
         for (let p of particles) {
-            const dx = mouseX - p.x;
-            const dy = mouseY - p.y;
+            const dx = x - p.x;
+            const dy = y - p.y;
             const dist = Math.sqrt(dx*dx + dy*dy);
             
             if (dist < 80) { 
@@ -199,11 +148,22 @@
                 p.vy -= Math.sin(angle) * force;
             }
         }
+    }
+
+    // 1. 電腦滑鼠監聽
+    window.addEventListener('mousemove', (e) => {
+        handleInteraction(e.clientX, e.clientY);
     });
+
+    // 2. 手機觸控監聽 (Touch Events)
+    window.addEventListener('touchmove', (e) => {
+        e.preventDefault(); // 防止滑動畫面時觸發瀏覽器的滾動行為
+        // 手機可能有多點觸控，我們只取第一個接觸點
+        const touch = e.touches[0];
+        handleInteraction(touch.clientX, touch.clientY);
+    }, { passive: false }); // passive: false 讓 preventDefault 生效
 
     resize();
     animate();
 
 </script>
-</body>
-</html>
