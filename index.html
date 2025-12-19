@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="color-scheme" content="dark">
-    <title>Multilingual Christmas Tree</title>
+    <title>Lightweight Multilingual Tree</title>
     <style>
         html { background-color: #050508; height: 100%; overflow: hidden; }
         body {
@@ -17,7 +17,7 @@
             position: absolute; bottom: 8%; width: 100%; text-align: center;
             color: #fffde7; font-size: 32px; font-weight: bold;
             pointer-events: none; letter-spacing: 5px;
-            text-shadow: 0 0 15px #ffd700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
             font-family: 'Times New Roman', serif; z-index: 10;
         }
     </style>
@@ -29,7 +29,7 @@
 
 <script>
     const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false }); // 關閉透明通道優化效能
 
     let width, height, particles = [];
     const isMobile = window.innerWidth < 768;
@@ -52,28 +52,20 @@
             this.targetX = x; this.targetY = y;
             this.x = Math.random() * width; this.y = Math.random() * height;
             this.vx = 0; this.vy = 0;
-            this.ease = 0.04;
-            this.friction = 0.88;
+            this.ease = 0.05;
+            this.friction = 0.85;
             this.type = type;
-            this.text = languages[Math.floor(Math.random() * languages.length)];
-            this.rotation = (Math.random() - 0.5) * 0.3; // 輕微旋轉更有設計感
+            this.text = type === 'star' ? "★" : languages[Math.floor(Math.random() * languages.length)];
 
             if (type === 'leaf') {
-                // 濃郁的森林綠
-                this.color = `rgba(${20 + Math.random() * 40}, ${150 + Math.random() * 50}, 50,`;
-                this.fontSize = isMobile ? 10 : 13;
-                this.alpha = 0.7;
+                this.color = `rgb(${30 + Math.random() * 30}, ${140 + Math.random() * 40}, 50)`;
+                this.fontSize = isMobile ? 10 : 12;
             } else if (type === 'star') {
-                this.text = "★";
-                this.color = `rgba(255, 230, 100,`;
-                this.fontSize = isMobile ? 24 : 35;
-                this.alpha = 1;
-                this.rotation = 0;
+                this.color = "rgb(255, 230, 100)";
+                this.fontSize = isMobile ? 24 : 30;
             } else {
-                // 金色與紅色的裝飾文字
-                this.color = Math.random() > 0.5 ? `rgba(255, 60, 60,` : `rgba(255, 215, 0,`;
-                this.fontSize = isMobile ? 12 : 16;
-                this.alpha = 0.9;
+                this.color = Math.random() > 0.5 ? "rgb(255, 70, 70)" : "rgb(255, 215, 0)";
+                this.fontSize = isMobile ? 12 : 14;
             }
         }
 
@@ -85,85 +77,69 @@
         }
 
         draw() {
-            ctx.save();
-            ctx.translate(this.x, this.y);
-            ctx.rotate(this.rotation);
-            
-            ctx.fillStyle = this.color + this.alpha + ')';
-            ctx.font = `bold ${this.fontSize}px Arial, "Microsoft JhengHei"`;
-            ctx.textAlign = "center";
-            
-            // 🔥 移除 lighter，使用適度的陰影發光
-            if (this.type !== 'leaf') {
-                ctx.shadowBlur = 8;
-                ctx.shadowColor = this.color + '0.5)';
-            } else {
-                ctx.shadowBlur = 2;
-                ctx.shadowColor = 'rgba(0,0,0,0.5)';
-            }
-            
-            ctx.fillText(this.text, 0, 0);
-            ctx.restore();
+            ctx.fillStyle = this.color;
+            ctx.font = `bold ${this.fontSize}px Arial`;
+            ctx.fillText(this.text, this.x, this.y);
         }
     }
 
     function initTree() {
         particles = [];
-        const treeH = height * 0.6;
-        const treeW = height * 0.42;
+        const treeH = height * 0.65;
+        const treeW = height * 0.4;
         const startX = width / 2;
-        const startY = height * 0.18;
+        const startY = height * 0.15;
 
-        const layers = isMobile ? 12 : 20;
+        // 優化：減少層數與密度
+        const layers = isMobile ? 10 : 15;
         for (let l = 0; l < layers; l++) {
-            const layerProgress = l / layers;
-            const layerY = startY + layerProgress * treeH;
-            const layerW = layerProgress * (treeW / 2);
-            
-            // 降低密度防止視覺過載
-            const count = isMobile ? (8 + l * 5) : (12 + l * 8);
+            const lp = l / layers;
+            const layerY = startY + lp * treeH;
+            const layerW = lp * (treeW / 2);
+            const count = isMobile ? (6 + l * 4) : (10 + l * 6);
             for (let i = 0; i < count; i++) {
                 const xOff = (Math.random() - 0.5) * 2 * layerW;
                 particles.push(new Particle(startX + xOff, layerY + (Math.random()-0.5)*10, 'leaf'));
             }
         }
 
-        const decorCount = isMobile ? 25 : 50;
+        const decorCount = isMobile ? 20 : 40;
         for (let i = 0; i < decorCount; i++) {
             const h = Math.random() * treeH;
             const w = (h / treeH) * (treeW / 2);
             particles.push(new Particle(startX + (Math.random()-0.5)*2*w, startY + h, 'decor'));
         }
 
-        for (let i = 0; i < 10; i++) {
-            particles.push(new Particle(startX + (Math.random()-0.5)*5, startY - 25, 'star'));
+        // 頂部星星
+        for (let i = 0; i < 5; i++) {
+            particles.push(new Particle(startX, startY - 15, 'star'));
         }
     }
 
     function animate() {
-        // 使用稍微帶點深藍的黑色背景，增加深度
         ctx.fillStyle = '#050508';
         ctx.fillRect(0, 0, width, height);
-        
-        // ❌ 移除 globalCompositeOperation = 'lighter'
+        ctx.textAlign = "center";
 
         for (let i = 0; i < particles.length; i++) {
-            particles[i].update();
-            particles[i].draw();
+            const p = particles[i];
+            p.update();
+            p.draw();
         }
         
         requestAnimationFrame(animate);
     }
     
     function handleInteraction(x, y) {
-        const radius = isMobile ? 60 : 100;
+        const radius = isMobile ? 50 : 80;
+        const rSq = radius * radius;
         for (let i = 0; i < particles.length; i++) {
             const p = particles[i];
             const dx = x - p.x;
             const dy = y - p.y;
-            const distSq = dx*dx + dy*dy;
-            if (distSq < radius * radius) {
-                const force = (radius - Math.sqrt(distSq)) * 0.12;
+            const dSq = dx*dx + dy*dy;
+            if (dSq < rSq) {
+                const force = (radius - Math.sqrt(dSq)) * 0.1;
                 const angle = Math.atan2(dy, dx);
                 p.vx -= Math.cos(angle) * force;
                 p.vy -= Math.sin(angle) * force;
