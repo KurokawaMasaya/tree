@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="color-scheme" content="dark">
     <title>Clear Multilingual Tree</title>
     <style>
         html { background-color: #050508; height: 100%; overflow: hidden; }
@@ -14,11 +15,11 @@
         canvas { display: block; width: 100%; height: 100%; }
         #message {
             position: absolute; 
-            bottom: 12%; /* 上移，避免被手機工具列擋住 */
+            bottom: 15%; /* 確保在手機工具列上方，比例更協調 */
             width: 100%; text-align: center;
-            color: #fffde7; font-size: 24px; font-weight: bold;
-            pointer-events: none; letter-spacing: 4px;
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+            color: #fffde7; font-size: 26px; font-weight: bold;
+            pointer-events: none; letter-spacing: 5px;
+            text-shadow: 0 0 12px rgba(255, 215, 0, 0.8), 0 0 20px rgba(255, 255, 255, 0.3);
             font-family: Arial, sans-serif; z-index: 10;
         }
     </style>
@@ -34,25 +35,21 @@
 
     let width, height, particles = [];
     const isMobile = window.innerWidth < 768;
-    
-    // 🔥 解決模糊關鍵：根據螢幕像素比縮放 Canvas
     const dpr = window.devicePixelRatio || 1;
 
+    // 包含韓語的完整清單
     const languages = [
         "Merry Christmas", "聖誕快樂", "耶誕快樂", "圣诞快乐", 
         "Joyeux Noël", "Frohe Weihnachten", "Feliz Navidad", 
-        "メリークリスマス", "Buon Natale"
+        "メリークリスマス", "메리 크리스마스", "Buon Natale"
     ];
 
     function resize() {
         width = window.innerWidth;
         height = window.innerHeight;
-        
-        // 調整畫布大小以對應高解析度螢幕
         canvas.width = width * dpr;
         canvas.height = height * dpr;
         ctx.scale(dpr, dpr);
-        
         initTree();
     }
     window.addEventListener('resize', resize);
@@ -62,12 +59,21 @@
             this.targetX = x; this.targetY = y;
             this.x = Math.random() * width; this.y = Math.random() * height;
             this.vx = 0; this.vy = 0;
-            this.ease = 0.07;
-            this.friction = 0.82;
+            this.ease = 0.08;
+            this.friction = 0.8;
             this.type = type;
             this.text = type === 'star' ? "★" : languages[Math.floor(Math.random() * languages.length)];
-            this.fontSize = type === 'star' ? (isMobile ? 32 : 45) : (isMobile ? 12 : 15);
-            this.color = type === 'star' ? "#FFD700" : (Math.random() > 0.8 ? "#FF4D4D" : "#2ECC71");
+            this.fontSize = type === 'star' ? (isMobile ? 36 : 50) : (isMobile ? 12 : 16);
+            
+            // 色彩配置：金黃、鮮紅、翠綠
+            if (type === 'star') {
+                this.color = "#FFD700";
+            } else {
+                const rand = Math.random();
+                if (rand > 0.85) this.color = "#FF4D4D"; // 紅
+                else if (rand > 0.7) this.color = "#F1C40F"; // 金
+                else this.color = "#27AE60"; // 綠
+            }
         }
 
         update() {
@@ -79,7 +85,7 @@
 
         draw() {
             ctx.fillStyle = this.color;
-            ctx.font = `bold ${this.fontSize}px Arial`;
+            ctx.font = `bold ${this.fontSize}px Arial, sans-serif`;
             ctx.textAlign = "center";
             ctx.fillText(this.text, this.x, this.y);
         }
@@ -87,25 +93,26 @@
 
     function initTree() {
         particles = [];
-        // 🔥 調整比例：樹的高度佔 60%，起始點下壓一點避免頂到螢幕邊緣
-        const treeH = height * 0.55;
-        const treeW = Math.min(width * 0.85, height * 0.4);
+        const treeH = height * 0.5; // 樹高佔一半，留出上下空間
+        const treeW = Math.min(width * 0.8, height * 0.45);
         const startX = width / 2;
-        const startY = height * 0.12; 
+        const startY = height * 0.18; // 稍微下移，給星星留位子
 
-        const rowHeight = isMobile ? 24 : 30; 
+        const rowHeight = isMobile ? 26 : 32; 
         const layers = Math.floor(treeH / rowHeight);
 
         for (let l = 1; l <= layers; l++) {
             const y = startY + l * rowHeight;
             const currentW = (l / layers) * treeW;
-            const wordsInRow = Math.max(1, Math.floor(currentW / (isMobile ? 65 : 100)));
+            const wordsInRow = Math.max(1, Math.floor(currentW / (isMobile ? 75 : 110)));
             
             for (let i = 0; i < wordsInRow; i++) {
                 const x = startX - (currentW / 2) + (i * (currentW / wordsInRow)) + (currentW / wordsInRow / 2);
-                particles.push(new Particle(x, y + (Math.random() - 0.5) * 5, 'leaf'));
+                // 減少抖動，讓文字排列更整齊清爽
+                particles.push(new Particle(x, y + (Math.random() - 0.5) * 4, 'leaf'));
             }
         }
+        // 頂部星星
         particles.push(new Particle(startX, startY, 'star'));
     }
 
@@ -121,14 +128,14 @@
     }
     
     function handleInteraction(x, y) {
-        const radius = isMobile ? 60 : 100;
+        const radius = isMobile ? 65 : 100;
         for (let i = 0; i < particles.length; i++) {
             const p = particles[i];
             const dx = x - p.x;
             const dy = y - p.y;
             const dSq = dx*dx + dy*dy;
             if (dSq < radius * radius) {
-                const force = (radius - Math.sqrt(dSq)) * 0.15;
+                const force = (radius - Math.sqrt(dSq)) * 0.18;
                 const angle = Math.atan2(dy, dx);
                 p.vx -= Math.cos(angle) * force;
                 p.vy -= Math.sin(angle) * force;
