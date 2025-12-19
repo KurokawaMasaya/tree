@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Clear Multilingual Tree</title>
     <style>
         html { background-color: #050508; height: 100%; overflow: hidden; }
@@ -11,13 +11,15 @@
             background: #050508 radial-gradient(circle at center, #1a2a3a 0%, #050508 100%);
             overflow: hidden; touch-action: none; position: fixed; top: 0; left: 0;
         }
-        canvas { display: block; }
+        canvas { display: block; width: 100%; height: 100%; }
         #message {
-            position: absolute; bottom: 8%; width: 100%; text-align: center;
-            color: #fffde7; font-size: 28px; font-weight: bold;
+            position: absolute; 
+            bottom: 12%; /* 上移，避免被手機工具列擋住 */
+            width: 100%; text-align: center;
+            color: #fffde7; font-size: 24px; font-weight: bold;
             pointer-events: none; letter-spacing: 4px;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.9);
-            font-family: 'Arial', sans-serif; z-index: 10;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+            font-family: Arial, sans-serif; z-index: 10;
         }
     </style>
 </head>
@@ -28,10 +30,13 @@
 
 <script>
     const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d', { alpha: false });
+    const ctx = canvas.getContext('2d');
 
     let width, height, particles = [];
     const isMobile = window.innerWidth < 768;
+    
+    // 🔥 解決模糊關鍵：根據螢幕像素比縮放 Canvas
+    const dpr = window.devicePixelRatio || 1;
 
     const languages = [
         "Merry Christmas", "聖誕快樂", "耶誕快樂", "圣诞快乐", 
@@ -40,35 +45,29 @@
     ];
 
     function resize() {
-        width = canvas.width = window.innerWidth;
-        height = canvas.height = window.innerHeight;
+        width = window.innerWidth;
+        height = window.innerHeight;
+        
+        // 調整畫布大小以對應高解析度螢幕
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        ctx.scale(dpr, dpr);
+        
         initTree();
     }
     window.addEventListener('resize', resize);
 
     class Particle {
-        constructor(x, y, type, text) {
+        constructor(x, y, type) {
             this.targetX = x; this.targetY = y;
             this.x = Math.random() * width; this.y = Math.random() * height;
             this.vx = 0; this.vy = 0;
-            this.ease = 0.06;
+            this.ease = 0.07;
             this.friction = 0.82;
             this.type = type;
-            this.text = text || languages[Math.floor(Math.random() * languages.length)];
-
-            if (type === 'leaf') {
-                // 清晰的綠色，不發光
-                this.color = `rgb(${20 + Math.random() * 40}, ${160 + Math.random() * 60}, 60)`;
-                this.fontSize = isMobile ? 11 : 14;
-            } else if (type === 'star') {
-                this.text = "★";
-                this.color = "#FFD700";
-                this.fontSize = isMobile ? 30 : 45;
-            } else {
-                // 裝飾文字用鮮豔的紅色或金色
-                this.color = Math.random() > 0.5 ? "#FF4D4D" : "#FFD700";
-                this.fontSize = isMobile ? 13 : 16;
-            }
+            this.text = type === 'star' ? "★" : languages[Math.floor(Math.random() * languages.length)];
+            this.fontSize = type === 'star' ? (isMobile ? 32 : 45) : (isMobile ? 12 : 15);
+            this.color = type === 'star' ? "#FFD700" : (Math.random() > 0.8 ? "#FF4D4D" : "#2ECC71");
         }
 
         update() {
@@ -81,66 +80,54 @@
         draw() {
             ctx.fillStyle = this.color;
             ctx.font = `bold ${this.fontSize}px Arial`;
+            ctx.textAlign = "center";
             ctx.fillText(this.text, this.x, this.y);
         }
     }
 
     function initTree() {
         particles = [];
-        const treeH = height * 0.65;
-        const treeW = height * 0.45;
+        // 🔥 調整比例：樹的高度佔 60%，起始點下壓一點避免頂到螢幕邊緣
+        const treeH = height * 0.55;
+        const treeW = Math.min(width * 0.85, height * 0.4);
         const startX = width / 2;
-        const startY = height * 0.15;
+        const startY = height * 0.12; 
 
-        // 🔥 使用明確的分層邏輯，增加間距避免堆疊
-        const rowHeight = isMobile ? 22 : 28; 
+        const rowHeight = isMobile ? 24 : 30; 
         const layers = Math.floor(treeH / rowHeight);
 
         for (let l = 1; l <= layers; l++) {
             const y = startY + l * rowHeight;
             const currentW = (l / layers) * treeW;
-            // 根據寬度決定該行放幾個詞，確保不擁擠
-            const wordsInRow = Math.max(1, Math.floor(currentW / (isMobile ? 70 : 100)));
+            const wordsInRow = Math.max(1, Math.floor(currentW / (isMobile ? 65 : 100)));
             
             for (let i = 0; i < wordsInRow; i++) {
-                // 計算均勻分佈的 X 座標
                 const x = startX - (currentW / 2) + (i * (currentW / wordsInRow)) + (currentW / wordsInRow / 2);
-                // 隨機抖動幅度縮小
-                const jitterX = (Math.random() - 0.5) * 10;
-                const jitterY = (Math.random() - 0.5) * 5;
-                
-                // 每隔幾個放一個裝飾色文字
-                const type = (l + i) % 4 === 0 ? 'decor' : 'leaf';
-                particles.push(new Particle(x + jitterX, y + jitterY, type));
+                particles.push(new Particle(x, y + (Math.random() - 0.5) * 5, 'leaf'));
             }
         }
-
-        // 頂部星星單獨處理
         particles.push(new Particle(startX, startY, 'star'));
     }
 
     function animate() {
         ctx.fillStyle = '#050508';
         ctx.fillRect(0, 0, width, height);
-        ctx.textAlign = "center";
 
         for (let i = 0; i < particles.length; i++) {
             particles[i].update();
             particles[i].draw();
         }
-        
         requestAnimationFrame(animate);
     }
     
     function handleInteraction(x, y) {
         const radius = isMobile ? 60 : 100;
-        const rSq = radius * radius;
         for (let i = 0; i < particles.length; i++) {
             const p = particles[i];
             const dx = x - p.x;
             const dy = y - p.y;
             const dSq = dx*dx + dy*dy;
-            if (dSq < rSq) {
+            if (dSq < radius * radius) {
                 const force = (radius - Math.sqrt(dSq)) * 0.15;
                 const angle = Math.atan2(dy, dx);
                 p.vx -= Math.cos(angle) * force;
