@@ -1,102 +1,59 @@
 <!DOCTYPE html>
-
 <html lang="zh-TW">
-
 <head>
-
     <meta charset="UTF-8">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Warm Christmas Tree</title>
-
     <style>
-
         body {
-
             margin: 0;
-
-            overflow: hidden;
-
-            /* 深夜藍色漸層背景 */
-
-            background: radial-gradient(circle at center, #1b2735 0%, #090a0f 100%);
-
-            font-family: 'Arial', sans-serif;
-
-        }
-
-        canvas {
-
-            display: block;
-
-        }
-
-        /* 中間大大的祝福語 */
-
-        #message {
-
-            position: absolute;
-
-            bottom: 40px;
-
+            padding: 0;
+            /* 🔥 核心鎖屏 CSS 🔥 */
+            overflow: hidden;       /* 隱藏卷軸 */
+            touch-action: none;     /* 禁止瀏覽器處理觸控（禁止滑動翻頁、縮放） */
+            position: fixed;        /* 強制固定頁面，防止 iOS 回彈效果 */
             width: 100%;
-
-            text-align: center;
-
-            color: rgba(255, 255, 255, 0.9);
-
-            font-size: 40px; 
-
-            font-weight: bold;
-
-            pointer-events: none;
-
-            letter-spacing: 8px;
-
-            text-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
-
-            font-family: 'Times New Roman', serif;
-
+            height: 100%;
+            
+            /* 背景 */
+            background: radial-gradient(circle at center, #1b2735 0%, #090a0f 100%);
+            font-family: 'Arial', sans-serif;
         }
-
-        /* 作者署名 - 改到右上角避免被擋住 */
-
-        #credit {
-
+        canvas {
+            display: block;
+            touch-action: none; /* 再次確保 Canvas 本身也不響應瀏覽器手勢 */
+        }
+        #message {
             position: absolute;
-
-            top: 15px;     /* <--- 改到上面 */
-
-            right: 20px;   /* <--- 靠右 */
-
-            color: rgba(255, 255, 255, 0.3); /* 稍微透明一點，很有質感 */
-
-            font-size: 12px;
-
-            font-family: sans-serif;
-
+            bottom: 40px;
+            width: 100%;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 40px; 
+            font-weight: bold;
             pointer-events: none;
-
-            font-style: italic;
-
-            letter-spacing: 1px;
-
+            letter-spacing: 8px;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+            font-family: 'Times New Roman', serif;
         }
-
+        #credit {
+            position: absolute;
+            top: 15px;    
+            right: 20px;  
+            color: rgba(255, 255, 255, 0.3); 
+            font-size: 12px;
+            font-family: sans-serif;
+            pointer-events: none;
+            font-style: italic;
+            letter-spacing: 1px;
+        }
     </style>
-
 </head>
-
 <body>
 
-
-
 <canvas id="canvas"></canvas>
-
 <div id="message">MERRY CHRISTMAS</div>
-
 <div id="credit">made by Joe Qiao and Gemini</div>
-
-
 
 <script>
     const canvas = document.getElementById('canvas');
@@ -232,9 +189,8 @@
         requestAnimationFrame(animate);
     }
     
-    // --- 核心修改：整合滑鼠與觸控 ---
+    // --- 互動邏輯 (整合滑鼠與觸控 + 鎖屏邏輯) ---
     
-    // 定義一個通用的互動處理函式
     function handleInteraction(x, y) {
         for (let p of particles) {
             const dx = x - p.x;
@@ -250,24 +206,22 @@
         }
     }
 
-    // 1. 電腦滑鼠監聽
+    // 電腦滑鼠
     window.addEventListener('mousemove', (e) => {
         handleInteraction(e.clientX, e.clientY);
     });
 
-    // 2. 手機觸控監聽 (Touch Events)
+    // 🔥 手機觸控：加入 passive: false 並調用 preventDefault() 🔥
     window.addEventListener('touchmove', (e) => {
-        e.preventDefault(); // 防止滑動畫面時觸發瀏覽器的滾動行為
-        // 手機可能有多點觸控，我們只取第一個接觸點
+        e.preventDefault(); // 這一行是關鍵：告訴瀏覽器「別捲動畫面，讓我自己處理」
+        
         const touch = e.touches[0];
         handleInteraction(touch.clientX, touch.clientY);
-    }, { passive: false }); // passive: false 讓 preventDefault 生效
+    }, { passive: false }); // 必須設為 false，否則 preventDefault 會失效
 
     resize();
     animate();
 
 </script>
-
 </body>
-
 </html>
