@@ -3,26 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="color-scheme" content="dark">
     <title>Warm Christmas Tree</title>
     <style>
+        /* 🔥 第一重保險：HTML 層級就先塗黑 */
+        html {
+            background-color: #090a0f; 
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
         body {
             margin: 0;
             padding: 0;
-            /* 🔥 核心鎖屏 CSS 🔥 */
-            overflow: hidden;       /* 隱藏卷軸 */
-            touch-action: none;     /* 禁止瀏覽器處理觸控（禁止滑動翻頁、縮放） */
-            position: fixed;        /* 強制固定頁面，防止 iOS 回彈效果 */
-            width: 100%;
-            height: 100%;
+            /* 🔥 第二重保險：Body 強制填滿螢幕 */
+            width: 100vw;
+            height: 100vh; /* 使用 vh 確保填滿視窗高度 */
             
-            /* 背景 */
-            background: radial-gradient(circle at center, #1b2735 0%, #090a0f 100%);
+            /* 🔥 第三重保險：純色背景墊底 + 漸層覆蓋 */
+            background-color: #090a0f; 
+            background-image: radial-gradient(circle at center, #1b2735 0%, #090a0f 100%);
+            
             font-family: 'Arial', sans-serif;
+            
+            /* 鎖定螢幕邏輯 */
+            overflow: hidden;
+            touch-action: none; 
+            position: fixed; 
+            top: 0;
+            left: 0;
         }
+
         canvas {
             display: block;
-            touch-action: none; /* 再次確保 Canvas 本身也不響應瀏覽器手勢 */
+            touch-action: none;
         }
+
         #message {
             position: absolute;
             bottom: 40px;
@@ -35,7 +52,9 @@
             letter-spacing: 8px;
             text-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
             font-family: 'Times New Roman', serif;
+            z-index: 10; /* 確保文字浮在最上層 */
         }
+
         #credit {
             position: absolute;
             top: 15px;    
@@ -46,6 +65,7 @@
             pointer-events: none;
             font-style: italic;
             letter-spacing: 1px;
+            z-index: 10;
         }
     </style>
 </head>
@@ -189,7 +209,7 @@
         requestAnimationFrame(animate);
     }
     
-    // --- 互動邏輯 (整合滑鼠與觸控 + 鎖屏邏輯) ---
+    // --- 互動邏輯 (鎖定捲動) ---
     
     function handleInteraction(x, y) {
         for (let p of particles) {
@@ -206,18 +226,15 @@
         }
     }
 
-    // 電腦滑鼠
     window.addEventListener('mousemove', (e) => {
         handleInteraction(e.clientX, e.clientY);
     });
 
-    // 🔥 手機觸控：加入 passive: false 並調用 preventDefault() 🔥
     window.addEventListener('touchmove', (e) => {
-        e.preventDefault(); // 這一行是關鍵：告訴瀏覽器「別捲動畫面，讓我自己處理」
-        
+        e.preventDefault(); // 絕對禁止滑動
         const touch = e.touches[0];
         handleInteraction(touch.clientX, touch.clientY);
-    }, { passive: false }); // 必須設為 false，否則 preventDefault 會失效
+    }, { passive: false });
 
     resize();
     animate();
