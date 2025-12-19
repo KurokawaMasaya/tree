@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="color-scheme" content="dark">
-    <title>Lightweight Multilingual Tree</title>
+    <title>Clear Multilingual Tree</title>
     <style>
         html { background-color: #050508; height: 100%; overflow: hidden; }
         body {
@@ -15,10 +14,10 @@
         canvas { display: block; }
         #message {
             position: absolute; bottom: 8%; width: 100%; text-align: center;
-            color: #fffde7; font-size: 32px; font-weight: bold;
-            pointer-events: none; letter-spacing: 5px;
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-            font-family: 'Times New Roman', serif; z-index: 10;
+            color: #fffde7; font-size: 28px; font-weight: bold;
+            pointer-events: none; letter-spacing: 4px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.9);
+            font-family: 'Arial', sans-serif; z-index: 10;
         }
     </style>
 </head>
@@ -29,7 +28,7 @@
 
 <script>
     const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d', { alpha: false }); // 關閉透明通道優化效能
+    const ctx = canvas.getContext('2d', { alpha: false });
 
     let width, height, particles = [];
     const isMobile = window.innerWidth < 768;
@@ -37,7 +36,7 @@
     const languages = [
         "Merry Christmas", "聖誕快樂", "耶誕快樂", "圣诞快乐", 
         "Joyeux Noël", "Frohe Weihnachten", "Feliz Navidad", 
-        "メリークリスマス", "메리 크리스마ス", "Buon Natale"
+        "メリークリスマス", "Buon Natale"
     ];
 
     function resize() {
@@ -48,24 +47,27 @@
     window.addEventListener('resize', resize);
 
     class Particle {
-        constructor(x, y, type) {
+        constructor(x, y, type, text) {
             this.targetX = x; this.targetY = y;
             this.x = Math.random() * width; this.y = Math.random() * height;
             this.vx = 0; this.vy = 0;
-            this.ease = 0.05;
-            this.friction = 0.85;
+            this.ease = 0.06;
+            this.friction = 0.82;
             this.type = type;
-            this.text = type === 'star' ? "★" : languages[Math.floor(Math.random() * languages.length)];
+            this.text = text || languages[Math.floor(Math.random() * languages.length)];
 
             if (type === 'leaf') {
-                this.color = `rgb(${30 + Math.random() * 30}, ${140 + Math.random() * 40}, 50)`;
-                this.fontSize = isMobile ? 10 : 12;
+                // 清晰的綠色，不發光
+                this.color = `rgb(${20 + Math.random() * 40}, ${160 + Math.random() * 60}, 60)`;
+                this.fontSize = isMobile ? 11 : 14;
             } else if (type === 'star') {
-                this.color = "rgb(255, 230, 100)";
-                this.fontSize = isMobile ? 24 : 30;
+                this.text = "★";
+                this.color = "#FFD700";
+                this.fontSize = isMobile ? 30 : 45;
             } else {
-                this.color = Math.random() > 0.5 ? "rgb(255, 70, 70)" : "rgb(255, 215, 0)";
-                this.fontSize = isMobile ? 12 : 14;
+                // 裝飾文字用鮮豔的紅色或金色
+                this.color = Math.random() > 0.5 ? "#FF4D4D" : "#FFD700";
+                this.fontSize = isMobile ? 13 : 16;
             }
         }
 
@@ -86,34 +88,35 @@
     function initTree() {
         particles = [];
         const treeH = height * 0.65;
-        const treeW = height * 0.4;
+        const treeW = height * 0.45;
         const startX = width / 2;
         const startY = height * 0.15;
 
-        // 優化：減少層數與密度
-        const layers = isMobile ? 10 : 15;
-        for (let l = 0; l < layers; l++) {
-            const lp = l / layers;
-            const layerY = startY + lp * treeH;
-            const layerW = lp * (treeW / 2);
-            const count = isMobile ? (6 + l * 4) : (10 + l * 6);
-            for (let i = 0; i < count; i++) {
-                const xOff = (Math.random() - 0.5) * 2 * layerW;
-                particles.push(new Particle(startX + xOff, layerY + (Math.random()-0.5)*10, 'leaf'));
+        // 🔥 使用明確的分層邏輯，增加間距避免堆疊
+        const rowHeight = isMobile ? 22 : 28; 
+        const layers = Math.floor(treeH / rowHeight);
+
+        for (let l = 1; l <= layers; l++) {
+            const y = startY + l * rowHeight;
+            const currentW = (l / layers) * treeW;
+            // 根據寬度決定該行放幾個詞，確保不擁擠
+            const wordsInRow = Math.max(1, Math.floor(currentW / (isMobile ? 70 : 100)));
+            
+            for (let i = 0; i < wordsInRow; i++) {
+                // 計算均勻分佈的 X 座標
+                const x = startX - (currentW / 2) + (i * (currentW / wordsInRow)) + (currentW / wordsInRow / 2);
+                // 隨機抖動幅度縮小
+                const jitterX = (Math.random() - 0.5) * 10;
+                const jitterY = (Math.random() - 0.5) * 5;
+                
+                // 每隔幾個放一個裝飾色文字
+                const type = (l + i) % 4 === 0 ? 'decor' : 'leaf';
+                particles.push(new Particle(x + jitterX, y + jitterY, type));
             }
         }
 
-        const decorCount = isMobile ? 20 : 40;
-        for (let i = 0; i < decorCount; i++) {
-            const h = Math.random() * treeH;
-            const w = (h / treeH) * (treeW / 2);
-            particles.push(new Particle(startX + (Math.random()-0.5)*2*w, startY + h, 'decor'));
-        }
-
-        // 頂部星星
-        for (let i = 0; i < 5; i++) {
-            particles.push(new Particle(startX, startY - 15, 'star'));
-        }
+        // 頂部星星單獨處理
+        particles.push(new Particle(startX, startY, 'star'));
     }
 
     function animate() {
@@ -122,16 +125,15 @@
         ctx.textAlign = "center";
 
         for (let i = 0; i < particles.length; i++) {
-            const p = particles[i];
-            p.update();
-            p.draw();
+            particles[i].update();
+            particles[i].draw();
         }
         
         requestAnimationFrame(animate);
     }
     
     function handleInteraction(x, y) {
-        const radius = isMobile ? 50 : 80;
+        const radius = isMobile ? 60 : 100;
         const rSq = radius * radius;
         for (let i = 0; i < particles.length; i++) {
             const p = particles[i];
@@ -139,7 +141,7 @@
             const dy = y - p.y;
             const dSq = dx*dx + dy*dy;
             if (dSq < rSq) {
-                const force = (radius - Math.sqrt(dSq)) * 0.1;
+                const force = (radius - Math.sqrt(dSq)) * 0.15;
                 const angle = Math.atan2(dy, dx);
                 p.vx -= Math.cos(angle) * force;
                 p.vy -= Math.sin(angle) * force;
