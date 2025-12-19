@@ -4,68 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="color-scheme" content="dark">
-    <title>Warm Christmas Tree</title>
+    <title>Fluid Christmas Tree</title>
     <style>
-        /* 🔥 第一重保險：HTML 層級就先塗黑 */
-        html {
-            background-color: #090a0f; 
-            height: 100%;
-            width: 100%;
-            overflow: hidden;
-        }
-
+        html { background-color: #090a0f; height: 100%; overflow: hidden; }
         body {
-            margin: 0;
-            padding: 0;
-            /* 🔥 第二重保險：Body 強制填滿螢幕 */
-            width: 100vw;
-            height: 100vh; /* 使用 vh 確保填滿視窗高度 */
-            
-            /* 🔥 第三重保險：純色背景墊底 + 漸層覆蓋 */
-            background-color: #090a0f; 
-            background-image: radial-gradient(circle at center, #1b2735 0%, #090a0f 100%);
-            
-            font-family: 'Arial', sans-serif;
-            
-            /* 鎖定螢幕邏輯 */
-            overflow: hidden;
-            touch-action: none; 
-            position: fixed; 
-            top: 0;
-            left: 0;
+            margin: 0; padding: 0; width: 100vw; height: 100vh;
+            background: #090a0f radial-gradient(circle at center, #1b2735 0%, #090a0f 100%);
+            overflow: hidden; touch-action: none; position: fixed; top: 0; left: 0;
         }
-
-        canvas {
-            display: block;
-            touch-action: none;
+        canvas { 
+            display: block; 
+            /* 🔥 強制 GPU 加速渲染 */
+            transform: translateZ(0); 
         }
-
         #message {
-            position: absolute;
-            bottom: 40px;
-            width: 100%;
-            text-align: center;
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 40px; 
-            font-weight: bold;
-            pointer-events: none;
-            letter-spacing: 8px;
-            text-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
-            font-family: 'Times New Roman', serif;
-            z-index: 10; /* 確保文字浮在最上層 */
-        }
-
-        #credit {
-            position: absolute;
-            top: 15px;    
-            right: 20px;  
-            color: rgba(255, 255, 255, 0.3); 
-            font-size: 12px;
-            font-family: sans-serif;
-            pointer-events: none;
-            font-style: italic;
-            letter-spacing: 1px;
-            z-index: 10;
+            position: absolute; bottom: 40px; width: 100%; text-align: center;
+            color: rgba(255, 255, 255, 0.9); font-size: 32px; font-weight: bold;
+            pointer-events: none; letter-spacing: 5px;
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+            font-family: 'Times New Roman', serif; z-index: 10;
         }
     </style>
 </head>
@@ -73,18 +30,16 @@
 
 <canvas id="canvas"></canvas>
 <div id="message">MERRY CHRISTMAS</div>
-<div id="credit">made by Joe Qiao and Gemini</div>
 
 <script>
     const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false }); // 優化：關閉透明通道計算
 
     let width, height;
     let particles = [];
     
-    // 樹的比例設定
-    const TREE_HEIGHT_RATIO = 0.7; 
-    const TREE_WIDTH_RATIO = 0.4;
+    // 🔥 偵測是否為手機
+    const isMobile = window.innerWidth < 768;
 
     function resize() {
         width = canvas.width = window.innerWidth;
@@ -95,150 +50,113 @@
 
     class Particle {
         constructor(x, y, type) {
-            this.type = type; 
             this.targetX = x;
             this.targetY = y;
             this.x = Math.random() * width;
             this.y = Math.random() * height;
-            
             this.vx = 0;
             this.vy = 0;
-            this.friction = 0.90; 
-            this.ease = 0.03;     
+            this.ease = isMobile ? 0.05 : 0.03; // 手機上反應快一點但減少計算週期
+            this.friction = 0.85; 
             
-            this.baseAlpha = 0.3 + Math.random() * 0.5;
-            this.alpha = 0;
             this.blinkOffset = Math.random() * Math.PI * 2;
-            this.blinkSpeed = 0.02 + Math.random() * 0.02; 
             
             if (type === 'leaf') {
-                const green = 100 + Math.random() * 100;
-                this.color = `rgba(50, ${green}, 50,`; 
-                this.size = Math.random() * 2 + 1.5;
-            } else if (type === 'decoration') {
-                if (Math.random() > 0.5) {
-                    this.color = `rgba(255, 50, 50,`; 
-                } else {
-                    this.color = `rgba(255, 215, 0,`; 
-                }
-                this.size = Math.random() * 3 + 2;
-                this.baseAlpha = 0.8; 
-            } else if (type === 'star') {
-                this.color = `rgba(255, 255, 200,`;
-                this.size = Math.random() * 5 + 2;
-                this.baseAlpha = 1;
+                this.color = `rgba(50, ${100 + Math.random() * 80}, 50,`;
+                this.size = isMobile ? 1.2 : 1.8;
+                this.alpha = 0.5;
+            } else {
+                this.color = Math.random() > 0.5 ? `rgba(255, 50, 50,` : `rgba(255, 215, 0,`;
+                this.size = isMobile ? 2 : 3;
+                this.alpha = 0.8;
             }
         }
 
         update() {
-            const dx = this.targetX - this.x;
-            const dy = this.targetY - this.y;
-            
-            this.vx += dx * this.ease;
-            this.vy += dy * this.ease;
-            
-            this.vx += (Math.random() - 0.5) * 0.1;
-            this.vy += (Math.random() - 0.5) * 0.1;
-
+            // 優化物理計算，減少亂數頻率
+            this.vx += (this.targetX - this.x) * this.ease;
+            this.vy += (this.targetY - this.y) * this.ease;
             this.vx *= this.friction;
             this.vy *= this.friction;
-            
             this.x += this.vx;
             this.y += this.vy;
-
-            this.blinkOffset += this.blinkSpeed;
-            this.alpha = this.baseAlpha * (0.7 + 0.3 * Math.sin(this.blinkOffset));
         }
 
         draw() {
             ctx.beginPath();
             ctx.fillStyle = this.color + this.alpha + ')';
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.arc(this.x, this.y, this.size, 0, 6.28); // 使用 6.28 代替 Math.PI*2 減少計算
             ctx.fill();
         }
     }
 
     function initTree() {
         particles = [];
-        const treeH = height * TREE_HEIGHT_RATIO;
-        const treeW = height * TREE_WIDTH_RATIO; 
-        
+        const treeH = height * 0.7;
+        const treeW = height * 0.4; 
         const startX = width / 2;
-        const startY = height / 2 - treeH / 2 + 30; 
+        const startY = height * 0.15; 
 
-        // 1. 樹葉
-        const layers = 15; 
+        // 🔥 手機版大幅減少粒子數量
+        const leafDensity = isMobile ? 15 : 30; 
+        const layers = isMobile ? 10 : 15;
+
         for (let l = 0; l < layers; l++) {
-            const layerProgress = l / layers;
-            const layerY = startY + layerProgress * treeH;
-            const layerWidth = (layerProgress * treeW) / 2; 
-            
-            const count = 30 + l * 40; 
+            const layerY = startY + (l / layers) * treeH;
+            const layerW = (l / layers) * (treeW / 2);
+            const count = 20 + l * leafDensity; 
             
             for (let i = 0; i < count; i++) {
-                const xOffset = (Math.random() - 0.5) * 2 * layerWidth;
-                const yOffset = (Math.random() - 0.5) * (treeH / layers);
-                particles.push(new Particle(startX + xOffset, layerY + yOffset, 'leaf'));
+                const xOff = (Math.random() - 0.5) * 2 * layerW;
+                particles.push(new Particle(startX + xOff, layerY + (Math.random()-0.5)*15, 'leaf'));
             }
         }
 
-        // 2. 裝飾球
-        for (let i = 0; i < 150; i++) {
+        // 裝飾品數量也減半
+        const decorCount = isMobile ? 60 : 150;
+        for (let i = 0; i < decorCount; i++) {
             const h = Math.random() * treeH;
             const w = (h / treeH) * (treeW / 2);
-            const xOff = (Math.random() - 0.5) * 2 * w * 0.9; 
-            particles.push(new Particle(startX + xOff, startY + h, 'decoration'));
-        }
-
-        // 3. 星星
-        for (let i = 0; i < 30; i++) {
-            const sx = startX + (Math.random() - 0.5) * 20;
-            const sy = startY - 10 + (Math.random() - 0.5) * 20;
-            particles.push(new Particle(sx, sy, 'star'));
+            particles.push(new Particle(startX + (Math.random()-0.5)*2*w, startY + h, 'decor'));
         }
     }
 
     function animate() {
-        ctx.clearRect(0, 0, width, height);
+        // 優化：使用純色填滿代替 clearRect 可以幫助某些手機瀏覽器渲染
+        ctx.fillStyle = '#090a0f';
+        ctx.fillRect(0, 0, width, height);
 
-        for (let p of particles) {
-            p.update();
-            p.draw();
+        for (let i = 0; i < particles.length; i++) {
+            particles[i].update();
+            particles[i].draw();
         }
-        
         requestAnimationFrame(animate);
     }
     
-    // --- 互動邏輯 (鎖定捲動) ---
-    
     function handleInteraction(x, y) {
-        for (let p of particles) {
+        const radius = isMobile ? 50 : 80;
+        for (let i = 0; i < particles.length; i++) {
+            const p = particles[i];
             const dx = x - p.x;
             const dy = y - p.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            
-            if (dist < 80) { 
+            const dist = dx*dx + dy*dy; // 優化：使用距離平方比較，避開 Math.sqrt
+            if (dist < radius * radius) {
+                const force = (radius - Math.sqrt(dist)) * 0.08;
                 const angle = Math.atan2(dy, dx);
-                const force = (80 - dist) * 0.05; 
                 p.vx -= Math.cos(angle) * force;
                 p.vy -= Math.sin(angle) * force;
             }
         }
     }
 
-    window.addEventListener('mousemove', (e) => {
-        handleInteraction(e.clientX, e.clientY);
-    });
-
+    window.addEventListener('mousemove', (e) => handleInteraction(e.clientX, e.clientY));
     window.addEventListener('touchmove', (e) => {
-        e.preventDefault(); // 絕對禁止滑動
-        const touch = e.touches[0];
-        handleInteraction(touch.clientX, touch.clientY);
+        e.preventDefault();
+        handleInteraction(e.touches[0].clientX, e.touches[0].clientY);
     }, { passive: false });
 
     resize();
     animate();
-
 </script>
 </body>
 </html>
